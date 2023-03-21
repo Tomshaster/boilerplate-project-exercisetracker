@@ -33,8 +33,8 @@ const userCleanup = async () => {
 const logCleanup = async () => {
   await log.deleteMany({});
 };
-// userCleanup();
-// logCleanup();
+userCleanup();
+logCleanup();
 app.use(cors());
 app.use(express.static("public"));
 
@@ -59,15 +59,14 @@ app.get("/api/users/:_id/logs", async (req, res) => {
       ? new Date(req.query.from)
       : new Date("1970-01-01");
     let to = req.query.to ? new Date(req.query.to) : new Date();
-    let limit = req.query.limit ? Number(req.query.limit) : 0;
+    let limit = req.query.limit ? Number(req.query.limit) : 9999;
     let searchedUser = await user.findOne({ _id: id });
     // console.log(searchedUser);
     let searchedLogs = await log
       .find({ user: searchedUser.username })
-      .limit(limit)
       .select("-_id -__v -user");
     let count = searchedLogs.length;
-    // console.log(searchedLogs);
+    console.log(searchedLogs);
     let fixedLogs = [];
     searchedLogs.forEach((log) => {
       // console.log(new Date(log.date));
@@ -77,11 +76,17 @@ app.get("/api/users/:_id/logs", async (req, res) => {
         fixedLogs.push(log);
       }
     });
+    // console.log(fixedLogs[0].date);
+    // console.log(new Date(fixedLogs[0].date).getTimezoneOffset());
+    count =
+      fixedLogs.length < limit
+        ? fixedLogs.length
+        : fixedLogs.slice(0, limit).length;
     res.json({
       username: searchedUser.username,
       count: count,
       _id: searchedUser._id,
-      log: fixedLogs,
+      log: fixedLogs.length < limit ? fixedLogs : fixedLogs.slice(0, limit),
     });
   } catch (error) {
     console.log(error);
